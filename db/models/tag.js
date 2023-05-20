@@ -4,11 +4,11 @@ const { Schema } = mongoose;
 const tagSchema = {
   name: {
     type: String,
-    required: true,
+    required: "{PATH} is required!",
   },
   color: {
     type: String,
-    required: true,
+    required: "{PATH} is required!",
   },
   task: {
     type: Schema.Types.ObjectId,

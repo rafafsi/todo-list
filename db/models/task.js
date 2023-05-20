@@ -4,22 +4,25 @@ const { Schema } = mongoose;
 const taskSchema = new Schema({
   title: {
     type: String,
-    required: true,
+    required: "{PATH} is required!",
   },
   status: {
     type: String,
-    enum: ["In progress", "Finished"],
-    required: true,
+    enum: {
+      values: ["In progress", "Finished"],
+      message: "'{VALUE}' is not supported.",
+    },
+    required: "{PATH} is required!",
   },
   priority: {
     type: Number,
-    required: true,
-    min: 1,
-    max: 10,
+    required: "{PATH} is required!",
+    min: [1, "The minimum priority is 1, I got {VALUE}"],
+    max: [10, "The maximum value supported is 10, I got {VALUE}"],
   },
   description: {
     type: String,
-    required: true,
+    required: "{PATH} is required!",
   },
   tags: [
     {
