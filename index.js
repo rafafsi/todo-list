@@ -8,7 +8,7 @@ app.use(cors()); //takes care of security of our application
 app.use(bodyParser.json())
 
 //db connection
-require("./db/config");
+require("./db/config/db.config");
 
 //requiring routes
 app.use(require('./db/routes'))
