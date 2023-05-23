@@ -1,4 +1,4 @@
-const { connection } = require("mongoose");
+const Tag = require("../../models/tag");
 const Task = require("../../models/task");
 
 module.exports = {
@@ -59,5 +59,23 @@ module.exports = {
     } catch (error) {
       res.send(error.message);
     }
+  },
+  addTagToATask: async (req, res) => {
+    const tagId = await Tag.findOne({ name: req.params.tagName }).then(
+      (tag) => tag._id
+    );
+
+    const updatedTask = await Task.findByIdAndUpdate(
+      req.params.taskId,
+      {
+        $push: {
+          tags: tagId._id,
+        },
+      },
+      { returnDocument: "after", runValidators: true, new: true }
+    ).populate("tags", "-_id -__v");
+
+    await updatedTask.save();
+    res.send(updatedTask);
   },
 };
