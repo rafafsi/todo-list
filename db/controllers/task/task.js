@@ -61,21 +61,43 @@ module.exports = {
     }
   },
   addTagToATask: async (req, res) => {
-    const tagId = await Tag.findOne({ name: req.params.tagName }).then(
-      (tag) => tag._id
-    );
+    try {
+      const tagId = await Tag.findOne({ name: req.params.tagName }).then(
+        (tag) => tag._id
+      );
 
-    const updatedTask = await Task.findByIdAndUpdate(
-      req.params.taskId,
-      {
-        $push: {
-          tags: tagId._id,
+      const updatedTask = await Task.findByIdAndUpdate(
+        req.params.taskId,
+        {
+          $push: {
+            tags: tagId._id,
+          },
         },
-      },
-      { returnDocument: "after", runValidators: true, new: true }
-    ).populate("tags", "-_id -__v");
+        { returnDocument: "after", runValidators: true, new: true }
+      ).populate("tags", "-_id -__v");
 
-    await updatedTask.save();
-    res.send(updatedTask);
+      await updatedTask.save();
+      res.send(updatedTask);
+    } catch (error) {
+      res.send(error.message);
+    }
+  },
+  removeTagFromATask: async (req, res) => {
+    try {
+      const tagId = await Tag.findOne({ name: req.params.tagName }).then(
+        (tag) => tag._id
+      );
+      let taskFound = await Task.findByIdAndUpdate(
+        req.params.taskId,
+        {
+          $pull: { tags: tagId },
+        },
+        { returnDocument: "after", runValidators: true, new: true }
+      );
+
+      res.send(taskFound);
+    } catch (error) {
+      res.send(error.message);
+    }
   },
 };
