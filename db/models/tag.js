@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
-const { Schema } = mongoose;
 
-const tagSchema = {
+const tagSchema = new mongoose.Schema({
   name: {
     type: String,
     required: "{PATH} is required!",
@@ -11,9 +10,9 @@ const tagSchema = {
     required: "{PATH} is required!",
   },
   task: {
-    type: Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.ObjectId,
     ref: "Task",
   },
-};
+});
 
 module.exports = mongoose.model("Tag", tagSchema);
