@@ -1,7 +1,6 @@
 const mongoose = require("mongoose");
-const { Schema } = mongoose;
 
-const taskSchema = new Schema({
+const taskSchema = new mongoose.Schema({
   title: {
     type: String,
     required: "{PATH} is required!",
@@ -26,7 +25,7 @@ const taskSchema = new Schema({
   },
   tags: [
     {
-      type: Schema.Types.ObjectId,
+      type: mongoose.Schema.Types.ObjectId,
       ref: "Tag",
     },
   ],

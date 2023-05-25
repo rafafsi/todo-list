@@ -3,7 +3,7 @@ const Task = require("../models/task");
 
 const handle = require("../util/handleError");
 
-module.exports = {
+const TagMethods = {
   create: async (req, res) => {
     const [newTag, newTagError] = await handle(
       Tag.create({ name: req.body.name, color: req.body.color }).then(
@@ -12,70 +12,129 @@ module.exports = {
     );
 
     if (newTagError) {
-      res
-        .status(401)
-        .send({ message: "Invalid data! Please type them properly." });
+      res.status(401).send({
+        message: "Invalid data! Please type them properly.",
+        error: newTagError.message,
+      });
     }
 
-    const [taskFound, taskFoundError] = await handle(
-      Task.findById(req.params.id)
-    );
+    if (newTag && req.params.taskId) {
+      const taskId = req.params.taskId;
+      const [taskFound, taskFoundError] = await handle(
+        Task.findById(taskId).populate("tags")
+      );
 
-    if (taskFoundError) {
-      res
-        .status(401)
-        .send({ message: "Task not found. Please, provide a vaild id." });
+      if (taskFound == null) {
+        if (taskId.length !== 24) {
+          return res
+            .status(400)
+            .json({ message: "ID must be 24 characters long." });
+        } else if (taskFoundError) {
+          return res
+            .status(404)
+            .json({ message: "Task not found. Please, provide a vaild id." });
+        } else {
+          return res
+            .status(404)
+            .json({ message: "Task not found. Please, provide a vaild id." });
+        }
+      }
+
+      if (taskFound) {
+        const [updatedTask, updatedTaskError] = await handle(
+          Task.updateOne(
+            { _id: taskId },
+            {
+              $push: {
+                tags: newTag._id,
+              },
+            },
+            { returnDocument: "after", runValidators: true, new: true }
+          ).populate("tags", "-_id -__v")
+        );
+
+        if (updatedTaskError) {
+          return res
+            .status(500)
+            .send({ message: "Task wasn't updated! Please try again." });
+        }
+
+        if (updatedTask) {
+          return res
+            .status(200)
+            .json({ message: "Tag successfully added to this task!" });
+        }
+      }
     }
-
-    const [updatedTask, updatedTaskError] = await handle(
-      Task.findByIdAndUpdate(req.params.id, {
-        $push: {
-          tags: newTag._id,
-        },
-      })
-    );
-
-    if (updatedTaskError) {
-      res
-        .status(401)
-        .send({ message: "Task wasn't updated. Please try again." });
-    }
-
-    res.status(200).send(updatedTask);
+    return res.status(200).send(newTag);
   },
   find: async (req, res) => {
+    const tagId = req.params.id;
+    const [tagFound, tagFoundError] = await handle(Tag.findById(tagId));
+
+    if (tagFound == null) {
+      if (tagId.length !== 24) {
+        return res
+          .status(400)
+          .json({ message: "ID must be 24 characters long." });
+      } else if (tagFoundError) {
+        return res
+          .status(404)
+          .json({ message: "Tag not found. Please, provide a vaild id." });
+      } else {
+        return res
+          .status(404)
+          .json({ message: "Tag not found. Please, provide a vaild id." });
+      }
+    }
+
+    return res.status(200).send(tagFound);
+  },
+  update: async (req, res) => {
+    const tagId = req.params.id;
     const [tagFound, tagFoundError] = await handle(Tag.findById(req.params.id));
 
-    if (tagFoundError) {
-      res
-        .status(401)
-        .send({ message: "Tag not found. Please, provide a vaild id." });
+    if (tagFound == null) {
+      if (tagId.length !== 24) {
+        return res
+          .status(400)
+          .json({ message: "ID must be 24 characters long." });
+      } else if (tagFoundError) {
+        return res
+          .status(404)
+          .json({ message: "Tag not found. Please, provide a vaild id." });
+      } else {
+        return res
+          .status(404)
+          .json({ message: "Tag not found. Please, provide a vaild id." });
+      }
     }
 
     if (tagFound) {
-      res.status(200).send(tagFound);
-    }
-  },
-  update: async (req, res) => {
-    const [updatedTag, updatedTagError] = await handle(
-      Tag.findByIdAndUpdate(req.params.id, {
-        $set: {
-          name: req.body.name,
-          color: req.body.color,
-        },
-      })
-    );
+      const [updatedTag, updatedTagError] = await handle(
+        Tag.updateOne(
+          { _id: tagId },
+          {
+            $set: {
+              name: req.body.name,
+              color: req.body.color,
+            },
+          },
+          { returnDocument: "after", runValidators: true, new: true }
+        )
+      );
 
-    if (updatedTagError) {
-      res
-        .status(401)
-        .send({ message: "Tag wasn't updated. Please try again." });
-    }
+      if (updatedTagError) {
+        res
+          .status(401)
+          .send({ message: "Tag wasn't updated! Please try again." });
+      }
 
-    if (updatedTag) {
-      res.status(200).send({
-        message: `Tag '${req.body.name}' was updated!`,
-      });
+      if (updatedTag) {
+        res.status(200).send({
+          message: `Tag '${req.body.name}' was updated!`,
+        });
+      }
     }
   },
 
@@ -99,7 +158,25 @@ module.exports = {
   searchTasks: async (req, res) => {
     const urlParam = req.query.tag;
 
-    if (urlParam.includes(",")) {
+    //if there's no param, this query will call for all tasks
+    if (!urlParam) {
+      const [findAllTasks, findAllTasksError] = await handle(
+        Task.find().populate("tags", "-_id -__v")
+      );
+
+      if (findAllTasks == null) {
+        if (findAllTasksError) {
+          return res.status(400).send(findAllTasksError);
+        }
+        return res
+          .status(200)
+          .send({ message: "You do not have any task created yet." });
+      }
+
+      return res.status(200).send(findAllTasks);
+    }
+    //if seaching for more than one tag
+    else if (urlParam.includes(",")) {
       const params = urlParam.split(",");
 
       const ids = await Promise.all(
@@ -121,7 +198,10 @@ module.exports = {
       );
 
       const [multipleTags, multipleTagsError] = await handle(
-        Task.find({ tags: { $all: ids } })
+        Task.find({ tags: { $all: ids } }).populate(
+          "tags",
+          "-_id -description -status -__v"
+        )
       );
 
       if (multipleTagsError) {
@@ -129,19 +209,31 @@ module.exports = {
       }
 
       if (multipleTags) {
-        res.status(200).send(multipleTags);
+        if (multipleTags.length === 0) {
+          return res
+            .status(200)
+            .send({ message: "This tag is not attached to any task." });
+        }
+        return res.status(200).send(multipleTags);
       }
+
+      //if searching for just one tag
     } else {
       const [tagFound, tagFoundError] = await handle(
         Tag.findOne({ name: urlParam })
       );
 
-      if (tagFoundError) {
-        res
-          .status(401)
-          .send({ message: "Tag not found. Please, provide a vaild id." });
+      if (tagFound == null) {
+        if (tagFoundError) {
+          return res
+            .status(404)
+            .json({ message: "Tag not found. Please, provide a vaild id." });
+        } else {
+          return res
+            .status(404)
+            .json({ message: "Tag not found. Please, provide a vaild id." });
+        }
       }
-
       const [singleTagTasks, singleTagTasksError] = await handle(
         Task.find(
           { tags: tagFound },
@@ -154,8 +246,15 @@ module.exports = {
       }
 
       if (singleTagTasks) {
-        res.status(200).send(singleTagTasks);
+        if (singleTagTasks.length === 0) {
+          return res
+            .status(200)
+            .send({ message: "This tag is not attached to any task." });
+        }
+        return res.status(200).send(singleTagTasks);
       }
     }
   },
 };
+
+module.exports = TagMethods;
