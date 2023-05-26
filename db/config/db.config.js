@@ -1,11 +1,11 @@
-const mongoose = require("mongoose");
+const db = require("../models");
 
-const connectDB = async () => {
-  try {
-    mongoose.connect("mongodb://localhost:27017/todo-list");
-  } catch (error) {
-    console.log(error);
-  }
-};
-
-connectDB();
+db.mongoose
+  .connect("mongodb://localhost:27017/todo-list")
+  .then(() => {
+    console.log("Successfully connect to MongoDB.");
+  })
+  .catch((error) => {
+    console.error("Connection error:", error);
+    process.exit();
+  });

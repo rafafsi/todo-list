@@ -1,18 +1,24 @@
 const express = require("express");
 const cors = require("cors");
-const bodyParser = require("body-parser")
+const cookieParser = require("cookie-parser");
+
 const app = express();
 
 //middlewares
-app.use(cors()); //takes care of security of our application
-app.use(bodyParser.json())
+app.use(cors());
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 //db connection
 require("./db/config/db.config");
 
 //requiring routes
-app.use(require('./db/routes'))
+app.use(require("./db/routers/task.routes"));
+app.use(require("./db/routers/tag.routes"));
+app.use(require("./db/routers/user.routes"));
 
-app.listen(3000, () => console.log("running on port 3000"));
-
-
+const PORT = process.env.PORT || 9000;
+app.listen(PORT, () => {
+  console.log(`App is live at ${PORT}`);
+});
