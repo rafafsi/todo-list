@@ -2,12 +2,8 @@ const express = require("express");
 const router = new express.Router();
 
 const User = require("../controllers/user.controller");
-const verifySignUp = require("../middlewares/verifySignUp");
 
-router.post(
-  "/api/user/signup",
-  [verifySignUp.validateEmail, verifySignUp.checkDuplicateEmail],
-  User.signup
-);
+router.post("/api/user/signup", User.signup);
+router.post("/api/user/login", User.login);
 
 module.exports = router;
